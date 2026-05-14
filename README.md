@@ -39,6 +39,7 @@ Key features:
 - [2. Configuration](#2-configuration)
   - [2.1 Model string prefixes](#21-model-string-prefixes)
   - [2.2 Environment variables](#22-environment-variables)
+  - [2.3 Repo MCP setup](#23-repo-mcp-setup)
 - [3. Usage](#3-usage)
   - [3.1 Quick demo](#31-quick-demo)
   - [3.2 Stepwise prover](#32-stepwise-prover)
@@ -142,6 +143,29 @@ Hugging Face:
 
 Debugging:
 - `LLM_DEBUG=1` – verbose backend routing + error logs from `prover/llm.py`.
+
+### 2.3 Repo MCP setup
+This repository commits project MCP configuration for Codex, Claude Code, and VS Code/Copilot:
+
+- `.codex/config.toml` for Codex.
+- `.mcp.json` for Claude Code.
+- `.vscode/mcp.json` for VS Code/Copilot.
+
+The canonical MCP server list lives in `.agents/mcp.servers.json`. The initial server is `docs-langchain`, which points to the LangChain documentation MCP endpoint at `https://docs.langchain.com/mcp`.
+
+Your local agent client may still ask you to trust or approve project MCP servers after clone. Do not add secrets, tokens, headers, or credentials to the committed MCP files.
+
+Regenerate the native client configs after editing the canonical source:
+
+```bash
+python scripts/sync_mcp_configs.py
+```
+
+Check whether committed generated configs are current:
+
+```bash
+python scripts/sync_mcp_configs.py --check
+```
 
 ---
 
