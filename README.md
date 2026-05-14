@@ -70,7 +70,7 @@ Install `uv`: https://docs.astral.sh/uv/getting-started/installation/
 uv sync
 ```
 
-Dependency changes should be made through `uv` so `uv.lock` stays current:
+Maintainers changing dependencies should use `uv` so `uv.lock` stays current:
 
 ```bash
 uv add requests
@@ -80,7 +80,7 @@ uv lock
 
 Do not add package lines to `requirements.txt`; CI rejects that file as a dependency source.
 
-If you plan to use CPU-only PyTorch wheels, follow the PyTorch index guidance before locking or syncing a CPU-only environment. For premise selection training, add the training dependency with `uv add sentence-transformers`.
+If you plan to use CPU-only PyTorch wheels, follow the PyTorch index guidance before locking or syncing a CPU-only environment. For premise selection training, install the training dependency group with `uv sync --group training`.
 
 ### 1.3 Ollama (local LLMs)
 Install and run Ollama: https://ollama.ai
@@ -99,10 +99,8 @@ We support **Gemini via the official `gemini` CLI**.
 
 ```bash
 # Install Gemini CLI following the instructions here: https://www.geminicli.cc/docs/installation
-# Then install the following (pick one)
+# Then install the CLI outside this repo environment:
 pipx install gemini-cli    # preferred
-# or
-pip install gemini-cli
 
 # Get a free Gemini API key here: https://aistudio.google.com/app/apikey
 # One-time setup (stores your key locally) 
@@ -165,13 +163,13 @@ Your local agent client may still ask you to trust or approve project MCP server
 Regenerate the native client configs after editing the canonical source:
 
 ```bash
-python scripts/sync_mcp_configs.py
+uv run python scripts/sync_mcp_configs.py
 ```
 
 Check whether committed generated configs are current:
 
 ```bash
-python scripts/sync_mcp_configs.py --check
+uv run python scripts/sync_mcp_configs.py --check
 ```
 
 ---
@@ -180,48 +178,48 @@ python scripts/sync_mcp_configs.py --check
 
 ### 3.1 Quick demo
 ```bash
-python -m prover.cli
+uv run python -m prover.cli
 # Default goal: rev (rev xs) = xs
 ```
 
 ### 3.2 Stepwise prover
 **Ollama (local):**
 ```bash
-python -m prover.cli --goal "map f (xs @ ys) = map f xs @ map f ys" \
+uv run python -m prover.cli --goal "map f (xs @ ys) = map f xs @ map f ys" \
   --model "qwen3-coder:30b"
 ```
 
 **Gemini CLI (hosted):**
 ```bash
-python -m prover.cli --goal 'rev (rev xs) = xs' \
+uv run python -m prover.cli --goal 'rev (rev xs) = xs' \
   --model 'gemini:gemini-3-flash-preview'
 ```
 
 **Hugging Face (hosted API):**
 ```bash
 export HF_API_TOKEN=hf_xxx
-python -m prover.cli --goal 'rev (rev xs) = xs' \
+uv run python -m prover.cli --goal 'rev (rev xs) = xs' \
   --model 'hf:meta-llama/Llama-3.1-8B-Instruct'
 ```
 
 **Hugging Face (local Transformers):**
 ```bash
-pip install transformers accelerate
+uv sync --group hf-local
 export HF_MODE=local
-python -m prover.cli --goal 'rev (rev xs) = xs' \
+uv run python -m prover.cli --goal 'rev (rev xs) = xs' \
   --model 'hf:meta-llama/Llama-3.1-8B-Instruct'
 ```
 
 More knobs:
 ```bash
-python -m prover.cli --goal 'rev (rev xs) = xs' \
+uv run python -m prover.cli --goal 'rev (rev xs) = xs' \
   --model 'qwen3-coder:30b' --beam 3 --max-depth 8 --timeout 20 \
   --sledge --quickcheck --nitpick --facts-limit 6 --variants
 ```
 
 Test with baseline method (sledgehammer only)
 ```bash
-python baselines/sledge_only.py \                                                              
+uv run python baselines/sledge_only.py \                                                              
   --file datasets/logic.txt \
   --imports Main \    
   --provers "e z3 vampire cvc5" \
@@ -233,82 +231,82 @@ python baselines/sledge_only.py \
 **Advanced features for the prover**
 Prove multiple goals from a file
 ```bash
-python -m prover.cli --goals-file datasets/lists.txt \
+uv run python -m prover.cli --goals-file datasets/lists.txt \
   --model "gemini:gemini-3-flash-preview"
 ```
 
 Benchmarking
 ```bash
-python -m prover.experiments bench --suite lists
+uv run python -m prover.experiments bench --suite lists
 # Results → datasets/results/
 ```
 
 Regression testing
 Create baseline:
 ```bash
-python -m prover.experiments regress --suite lists \
+uv run python -m prover.experiments regress --suite lists \
   --save-baseline datasets/baselines/lists.json
 ```
 Compare to baseline:
 ```bash
-python -m prover.experiments regress --suite lists \
+uv run python -m prover.experiments regress --suite lists \
   --baseline datasets/baselines/lists.json \
   --model "hf:meta-llama/Llama-3.1-8B-Instruct"
 ```
 
 Aggregating results
 ```bash
-python -m prover.experiments aggregate --best-only --top-k 2
+uv run python -m prover.experiments aggregate --best-only --top-k 2
 ```
 
 ### 3.3 Tactics reranker for the prover
 
 Train a tactics reranker Supervised (sklearn / XGBoost):
 ```bash
-python -m prover.train_reranker --algo sklearn-logreg --target bandit
-python -m prover.train_reranker --algo xgb-classifier --target bandit
+uv run python -m prover.train_reranker --algo sklearn-logreg --target bandit
+uv run python -m prover.train_reranker --algo xgb-classifier --target bandit
 ```
 
 RL-style Q-estimation:
 ```bash
-python -m prover.train_reranker --algo xgb-regressor --target q --attempts logs/attempts.log.jsonl --runs logs/runs.log.jsonl
+uv run python -m prover.train_reranker --algo xgb-regressor --target q --attempts logs/attempts.log.jsonl --runs logs/runs.log.jsonl
 ```
 
 AWR++ (with teacher & listwise):
 ```bash
 # Train a teacher model first
-python -m prover.train_reranker --algo xgb-ranker
+uv run python -m prover.train_reranker --algo xgb-ranker
 # Then train an AWR++ with knowledge distilled from the teacher
-python -m prover.train_reranker --algo awr --tau 0.6 --epochs 8 --batch 1024 --listwise_norm --teacher_w 0.3 --teacher auto --attempts logs/attempts.log.jsonl --runs logs/runs.log.jsonl
+uv run python -m prover.train_reranker --algo awr --tau 0.6 --epochs 8 --batch 1024 --listwise_norm --teacher_w 0.3 --teacher auto --attempts logs/attempts.log.jsonl --runs logs/runs.log.jsonl
 ```
 
 Deep Q Network:
 ```bash
-python -m prover.train_reranker --algo dqn --epochs 12 --batch 2048 --gamma 0.92 --target_update 500 --attempts logs/attempts.log.jsonl --runs logs/runs.log.jsonl
+uv run python -m prover.train_reranker --algo dqn --epochs 12 --batch 2048 --gamma 0.92 --target_update 500 --attempts logs/attempts.log.jsonl --runs logs/runs.log.jsonl
 ```
 
 Combining the above in curriculum training
 ```bash
 # Create data for easy stage
-python -m prover.experiments bench --file datasets/hol_main_easy_goals.txt --beam 3 --max-depth 6 --timeout 120 --facts-limit 6 --quickcheck --nitpick --reranker on --variants --no-minimize --model "qwen3-coder:30b" --shuffle
+uv run python -m prover.experiments bench --file datasets/hol_main_easy_goals.txt --beam 3 --max-depth 6 --timeout 120 --facts-limit 6 --quickcheck --nitpick --reranker on --variants --no-minimize --model "qwen3-coder:30b" --shuffle
 # Train a bandit classifier
-python -m prover.train_reranker --algo xgb-classifier --target bandit
+uv run python -m prover.train_reranker --algo xgb-classifier --target bandit
 
 # Create data for mid stage
-python -m prover.experiments bench --file datasets/hol_main_mid_goals.txt --beam 4 --max-depth 8 --timeout 120 --facts-limit 6 --quickcheck --nitpick --reranker on --sledge --variants --no-minimize --model "qwen3-coder:30b" --shuffle
+uv run python -m prover.experiments bench --file datasets/hol_main_mid_goals.txt --beam 4 --max-depth 8 --timeout 120 --facts-limit 6 --quickcheck --nitpick --reranker on --sledge --variants --no-minimize --model "qwen3-coder:30b" --shuffle
 # Re-train bandit classifier
-python -m prover.train_reranker --algo xgb-classifier --target bandit
+uv run python -m prover.train_reranker --algo xgb-classifier --target bandit
 # And also train a Q-style regressor
-python -m prover.train_reranker --algo xgb-regressor --target q
+uv run python -m prover.train_reranker --algo xgb-regressor --target q
 
 # Create data for hard stage
-python -m prover.experiments bench --file datasets/hol_main_hard_goals.txt --beam 5 --max-depth 10 --timeout 200 --facts-limit 8 --quickcheck --nitpick --reranker on --sledge --variants --no-minimize --model "qwen3-coder:30b" --shuffle
+uv run python -m prover.experiments bench --file datasets/hol_main_hard_goals.txt --beam 5 --max-depth 10 --timeout 200 --facts-limit 8 --quickcheck --nitpick --reranker on --sledge --variants --no-minimize --model "qwen3-coder:30b" --shuffle
 # Retrain Q-style regressor
-python -m prover.train_reranker --algo xgb-regressor --target q
+uv run python -m prover.train_reranker --algo xgb-regressor --target q
 # Train AWR++ with teacher knowledge distillation
-python -m prover.train_reranker --algo awr --tau 0.6 --epochs 8 --batch 1024 --listwise_norm --teacher_w 0.3 --teacher auto
+uv run python -m prover.train_reranker --algo awr --tau 0.6 --epochs 8 --batch 1024 --listwise_norm --teacher_w 0.3 --teacher auto
 # Also train DQN
-python -m prover.train_reranker --algo dqn --epochs 12 --batch 2048 --gamma 0.92 --target_update 500
+uv run python -m prover.train_reranker --algo dqn --epochs 12 --batch 2048 --gamma 0.92 --target_update 500
 # See which reranker works better.
 ```
 
@@ -316,7 +314,7 @@ python -m prover.train_reranker --algo dqn --epochs 12 --batch 2048 --gamma 0.92
 Main options
 Enable premise selection + provide context files using the options --premises --context --context-files like below
 ```bash
-python -m prover.cli \
+uv run python -m prover.cli \
   --goal 'map f (xs @ ys) = map f xs @ map f ys' \
   --premises --context --context-files "tmp/ContextDemo.thy" \
   --trace
@@ -324,7 +322,7 @@ python -m prover.cli \
 
 More options --premises-k-select --premises-k-rerank --context-window (defaults come from config/env):
 ```bash
-python -m prover.cli \
+uv run python -m prover.cli \
   --goal 'rev (rev xs) = xs' \
   --premises --premises-k-select 1024 --premises-k-rerank 64 \
   --context --context-files "tmp/ContextDemo.thy /path/to/More_List.thy" \
@@ -333,7 +331,7 @@ python -m prover.cli \
 
 Benchmarking and regression testing options are similar
 ```bash
-python -m prover.experiments bench --file datasets/lists.txt \
+uv run python -m prover.experiments bench --file datasets/lists.txt \
   --premises --context --context-files "tmp/ContextDemo.thy"
 ```
 
@@ -343,12 +341,12 @@ And put the downloaded file in datasets/magnusdata.
 
 Also install the small dep used for streaming
 ```bash
-pip install -U datasets
+uv sync --group data
 ```
 
 Convert MagnusData to attempts log used for our training (this may take a while, output file ~7.3GB)
 ```bash
-python datasets/magnus2attempts.py \
+uv run python datasets/magnus2attempts.py \
   --input datasets/magnusdata/full_dataset.json \
   --out logs/attempts.magnus.jsonl \
   --k-pool 64 --max-rows 500000
@@ -356,7 +354,7 @@ python datasets/magnus2attempts.py \
 
 Split attempts.magnus.jsonl into multiple shards as it's too large. Practical considerations: On a Macbook Pro with M1 Pro, shard size can be 200MB. On a server with RTX 5090, shard size can be 500MB or more.
 ```bash
-python logs/split_json.py \
+uv run python logs/split_json.py \
   --input logs/attempts.magnus.jsonl \
   --outdir logs/magnus_shards \
   --target-size-mb 200
@@ -365,7 +363,7 @@ python logs/split_json.py \
 Practical example: On a Macbook Pro with M1 Pro, train 1 epoch with batch size 32 using about 6 shards for the bi-encoder,  and batch siez 4 using 1 shard for the cross-encoder, as the latter is much slower. This is a good starter, and can train more when have time.
 ```bash
 # Train the bi-encoder first
-python -m prover.train_premises \
+uv run python -m prover.train_premises \
   --logs-glob 'logs/magnus_shards/shard_*' \
   --out models \
   --train-bi \
@@ -374,7 +372,7 @@ python -m prover.train_premises \
   --max-shards 6
 
 # Then train the cross-encoder
-python -m prover.train_premises \
+uv run python -m prover.train_premises \
   --logs-glob 'logs/magnus_shards/shard_*' \
   --out models \
   --train-cross --epochs 0 \
@@ -386,7 +384,7 @@ python -m prover.train_premises \
 Later if want to train more, just pick the next shards and use the --resume-bi and --resume-cross options
 ```bash
 # pick your next shards; e.g., shards 006..011
-python -m prover.train_premises \
+uv run python -m prover.train_premises \
   --logs logs/magnus_shards/shard_006 logs/magnus_shards/shard_007 \
          logs/magnus_shards/shard_008 logs/magnus_shards/shard_009 \
          logs/magnus_shards/shard_010 logs/magnus_shards/shard_011 \
@@ -396,7 +394,7 @@ python -m prover.train_premises \
   --epochs 1 --batch-size 32
 
 # Then train the cross-encoder with the next shard
-python -m prover.train_premises \
+uv run python -m prover.train_premises \
   --logs logs/magnus_shards/shard_001 \
   --out models \
   --train-cross --epochs 0 \
@@ -407,7 +405,7 @@ python -m prover.train_premises \
 
 Practical example: On a workstation with RTX 5090, train 2 epochs with batch size 256 and 64 for bi-encoder and cross-encoder, respectively. If time allows, just train on all shards. This way, we can train both the bi‑encoder (SELECT) and the cross‑encoder (RE‑RANK) in one go. 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python -m prover.train_premises \
+CUDA_VISIBLE_DEVICES=0 uv run python -m prover.train_premises \
   --logs-glob 'logs/magnus_shards/shard_*' \
   --out models \
   --train-bi --train-cross \
@@ -422,7 +420,7 @@ To use the trained models for premise selection, simply use the --premises optio
 
 Or, specify the model directory as below.
 ```bash
-python -m prover.cli \
+uv run python -m prover.cli \
   --goal 'map (f ∘ g) xs = map f (map g xs)' \
   --premises --context --context-files "tmp/ContextDemo.thy" \
   --premises-model-dir models/premises \
@@ -432,29 +430,29 @@ python -m prover.cli \
 ### 3.5 Isar-style proof outline sketching
 Run the planner to sketch a proof (fill the proof if possible). Internally, it proposes multiple outlines and picks the most suitable one to output.
 ```bash
-python -m planner.cli --timeout 60 --mode auto "rev (rev xs) = xs"
+uv run python -m planner.cli --timeout 60 --mode auto "rev (rev xs) = xs"
 ```
 
 Sketch an outline only
 ```bash
-python -m planner.cli --timeout 60 --mode outline "map f (xs @ ys) = map f xs @ map f ys"
+uv run python -m planner.cli --timeout 60 --mode outline "map f (xs @ ys) = map f xs @ map f ys"
 ```
 
 Controlling the divserity of multiple outlines
 ```bash
-python -m planner.cli --timeout 60 --diverse-outlines --k 3 --temps "0.35,0.55,0.85" --mode auto "map f (xs @ ys) = map f xs @ map f ys"
+uv run python -m planner.cli --timeout 60 --diverse-outlines --k 3 --temps "0.35,0.55,0.85" --mode auto "map f (xs @ ys) = map f xs @ map f ys"
 ```
 
 Proof repair is on by default, but can be turned off
 ```bash
-python -m planner.cli --model "gemini:gemini-3-flash-preview" \                   
+uv run python -m planner.cli --model "gemini:gemini-3-flash-preview" \                   
   --timeout 120 --no-repair \
   "map f (xs @ ys) = map f xs @ map f ys"
 ```
 
 Benchmarking a file of lemmas/proof goals
 ```bash
-python -m planner.experiments bench \  
+uv run python -m planner.experiments bench \  
   --file datasets/lists.txt \                                 
   --mode auto --diverse --k 3 --temps "0.35,0.55,0.85" \
   --timeout 120 --strict-no-sorry --verify \
@@ -463,7 +461,7 @@ python -m planner.experiments bench \
 
 Regression testing and save a baseline
 ```bash
-python -m planner.experiments regress \
+uv run python -m planner.experiments regress \
   --file datasets/lists.txt \                                 
   --mode auto --diverse --k 3 --timeout 120 \
   --strict-no-sorry --verify \
@@ -472,7 +470,7 @@ python -m planner.experiments regress \
 
 Regression testing against previously saved baseline
 ```bash
-python -m planner.experiments regress \
+uv run python -m planner.experiments regress \
   --file datasets/lists.txt --model "gemini:gemini-3-flash-preview"\
   --mode auto --diverse --k 3 --timeout 120 \
   --strict-no-sorry --verify \
@@ -484,7 +482,7 @@ python -m planner.experiments regress \
 
 Extract a data corpus for the planner from AFP (replace the path to afp thys with a valid path)
 ```bash
-python - <<'PY'
+uv run python - <<'PY'
 from planner.extract import mine_afp_corpus_rich
 mine_afp_corpus_rich(src_dir="/path/to/afp/thys", out_jsonl="datasets/isar_pairs_afp.jsonl")
 PY
@@ -492,7 +490,7 @@ PY
 
 Aggregate priors, generate a micro RAG (hint lexicon) from AFP.
 ```bash
-python -m planner.priors \
+uv run python -m planner.priors \
   --input datasets/isar_pairs_afp.jsonl \
   --priors datasets/isar_priors.json \
   --hintlex datasets/isar_hintlex.json \
@@ -501,7 +499,7 @@ python -m planner.priors \
 
 Run the planner with the new knowledge (alpha (default 1.0): weight on subgoals (keep dominant), beta (default 0.5): weight on pattern penalty, gamma (default 0.2): reward for using recommended hints)
 ```bash
-python -m planner.cli --goal 'map f (xs @ ys) = map f xs @ map f ys' \
+uv run python -m planner.cli --goal 'map f (xs @ ys) = map f xs @ map f ys' \
   --context-hints \
   --priors datasets/isar_priors.json \
   --hintlex datasets/isar_hintlex.json \
@@ -510,7 +508,7 @@ python -m planner.cli --goal 'map f (xs @ ys) = map f xs @ map f ys' \
 
 Also enable context extraction for prover call in planner
 ```bash
-python -m planner.cli --goal 'map f (xs @ ys) = map f xs @ map f ys' \
+uv run python -m planner.cli --goal 'map f (xs @ ys) = map f xs @ map f ys' \
   --context-hints \
   --priors datasets/isar_priors.json \
   --hintlex datasets/isar_hintlex.json \
@@ -520,7 +518,7 @@ python -m planner.cli --goal 'map f (xs @ ys) = map f xs @ map f ys' \
 
 Benchmarking a file of lemmas/proof goals with the micro RAG
 ```bash
-python -m planner.experiments bench \  
+uv run python -m planner.experiments bench \  
   --file datasets/lists.txt \                                 
   --mode auto --diverse --k 3 --temps "0.35,0.55,0.85" \
   --timeout 120 --strict-no-sorry --verify \
@@ -530,7 +528,7 @@ python -m planner.experiments bench \
 
 Extract correct proofs from the planner's log
 ```bash
-python logs/filter_positive_planner_logs.py logs/planner.log.jsonl \
+uv run python logs/filter_positive_planner_logs.py logs/planner.log.jsonl \
   --isar-pairs-jsonl datasets/isar_pairs_new.jsonl --require-verified
 ```
 
@@ -541,7 +539,7 @@ cat datasets/isar_pairs_afp.jsonl datasets/isar_pairs_new.jsonl > datasets/isar_
 
 Continual improvement using the combined micro RAG
 ```bash
-python -m planner.priors \
+uv run python -m planner.priors \
   --input datasets/isar_pairs_combo.jsonl \
   --priors data/isar_priors.json \
   --hintlex data/isar_hintlex.json \
@@ -551,7 +549,7 @@ python -m planner.priors \
 ### 3.7 Isabelle/jEdit GUI integration
 Run the HTTP server:
 ```bash
-python3 -m isabelle_ui.server
+uv run python -m isabelle_ui.server
 ```
 Copy the `.bsh` macros from `isabelle_ui/` to your jEdit macros folder, e.g.
 - macOS/Linux: `~/.isabelle/Isabelle2025/jedit/macros/LLM_Prover`
@@ -570,7 +568,7 @@ git clone --depth=1 https://github.com/facebookresearch/miniF2F.git external/min
 
 Process the dataste for Isabelle/HOL
 ```bash
-python datasets/thys2goal.py \
+uv run python datasets/thys2goal.py \
   --mode minif2f \
   --repo external/miniF2F \
   --outdir datasets/mini_f2f
@@ -588,10 +586,10 @@ export ISABELLE_LOGIC=MiniF2F_Base
 Run the prover on the validation datasets
 ```bash
 # Validation 
-ISABELLE_LOGIC=MiniF2F_Base python -m prover.experiments bench --file datasets/mini_f2f/mini_f2f_validation.txt --beam 5 --max-depth 10 --timeout 200 --facts-limit 8 --quickcheck --nitpick --reranker on --sledge --variants --no-minimize --model "qwen3-coder:30b" --shuffle
+ISABELLE_LOGIC=MiniF2F_Base uv run python -m prover.experiments bench --file datasets/mini_f2f/mini_f2f_validation.txt --beam 5 --max-depth 10 --timeout 200 --facts-limit 8 --quickcheck --nitpick --reranker on --sledge --variants --no-minimize --model "qwen3-coder:30b" --shuffle
 
 # Testing
-ISABELLE_LOGIC=MiniF2F_Base python -m prover.experiments bench --file datasets/mini_f2f/mini_f2f_test.txt --beam 5 --max-depth 10 --timeout 200 --facts-limit 8 --quickcheck --nitpick --reranker on --sledge --variants --no-minimize --model "qwen3-coder:30b" --shuffle
+ISABELLE_LOGIC=MiniF2F_Base uv run python -m prover.experiments bench --file datasets/mini_f2f/mini_f2f_test.txt --beam 5 --max-depth 10 --timeout 200 --facts-limit 8 --quickcheck --nitpick --reranker on --sledge --variants --no-minimize --model "qwen3-coder:30b" --shuffle
 ```
 
 Maybe train rerankers using on the logs from the validation set, and then run the test set to see results. 
@@ -599,7 +597,7 @@ Maybe train rerankers using on the logs from the validation set, and then run th
 Also try the planner
 ```bash
 # Validation 
-python -m planner.experiments bench \  
+uv run python -m planner.experiments bench \  
   --file datasets/mini_f2f/mini_f2f_validation.txt \                                 
   --mode auto --diverse --k 3 --temps "0.35,0.55,0.85" \
   --timeout 200 --strict-no-sorry --verify \
@@ -607,7 +605,7 @@ python -m planner.experiments bench \
   --model "qwen3-coder:30b" --shuffle --seed 42
 
 # Testing
-python -m planner.experiments bench \  
+uv run python -m planner.experiments bench \  
   --file datasets/mini_f2f/mini_f2f_test.txt \                                 
   --mode auto --diverse --k 3 --temps "0.35,0.55,0.85" \
   --timeout 200 --strict-no-sorry --verify \
@@ -624,7 +622,7 @@ git clone https://github.com/trishullab/PutnamBench.git external/PutnamBench
 
 Process the dataste for Isabelle/HOL
 ```bash
-python datasets/thys2goal.py \
+uv run python datasets/thys2goal.py \
   --mode generic \
   --repo external/PutnamBench/isabelle \
   --outfile datasets/putnambench/putnambench_goals.txt \
@@ -644,12 +642,12 @@ export ISABELLE_LOGIC=PutnamBench_Base
 
 Run the prover on the PutnamBench dataset
 ```bash
-ISABELLE_LOGIC=PutnamBench_Base python -m prover.experiments bench --file datasets/putnambench/putnambench_goals.txt --beam 5 --max-depth 10 --timeout 200 --facts-limit 8 --quickcheck --nitpick --reranker on --sledge --variants --no-minimize --model "qwen3-coder:30b"
+ISABELLE_LOGIC=PutnamBench_Base uv run python -m prover.experiments bench --file datasets/putnambench/putnambench_goals.txt --beam 5 --max-depth 10 --timeout 200 --facts-limit 8 --quickcheck --nitpick --reranker on --sledge --variants --no-minimize --model "qwen3-coder:30b"
 ```
 
 Also try the planner
 ```bash
-python -m planner.experiments bench \  
+uv run python -m planner.experiments bench \  
   --file datasets/putnambench/putnambench_goals.txt \                                 
   --mode auto --diverse --k 3 --temps "0.35,0.55,0.85" \
   --timeout 200 --strict-no-sorry --verify \

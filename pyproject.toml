@@ -20,6 +20,16 @@ dependencies = [
 docs = [
     "pdoc",
 ]
+hf-local = [
+    "accelerate",
+    "transformers",
+]
+data = [
+    "datasets",
+]
+training = [
+    "sentence-transformers",
+]
 
 [tool.uv]
 package = false
