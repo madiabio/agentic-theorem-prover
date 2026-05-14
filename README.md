@@ -49,9 +49,10 @@ Key features:
   - [3.6 Planner data corpus and micro RAG](#36-planner-data-corpus-and-micro-rag)
   - [3.7 Isabelle/jEdit GUI integration](#37-isabellejedit-gui-integration)
   - [3.8 Evaluation using mini-F2F](#38-evaluation-using-mini-f2f)
-- [4. Project Structure](#5-project-structure)
-- [5. Notes & Tips](#6-notes--tips)
-- [6. License](#7-license)
+- [4. Documentation](#4-documentation)
+- [5. Project Structure](#5-project-structure)
+- [6. Notes & Tips](#6-notes--tips)
+- [7. License](#7-license)
 
 ---
 
@@ -63,17 +64,23 @@ Key features:
 - **System packages**: GNU Make, `g++`, etc. (used by Isabelle and some Python libs).
 
 ### 1.2 Python setup
+Install `uv`: https://docs.astral.sh/uv/getting-started/installation/
+
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -U pip
-pip install -r requirements.txt
-# If you plan to use CPU-only PyTorch wheels:
-pip install torch --index-url https://download.pytorch.org/whl/cpu
-# For premise selection training
-pip install -U sentence-transformers
+uv sync
 ```
-If have problems, ChatGPT can usually solve it.
+
+Dependency changes should be made through `uv` so `uv.lock` stays current:
+
+```bash
+uv add requests
+uv remove requests
+uv lock
+```
+
+Do not add package lines to `requirements.txt`; CI rejects that file as a dependency source.
+
+If you plan to use CPU-only PyTorch wheels, follow the PyTorch index guidance before locking or syncing a CPU-only environment. For premise selection training, add the training dependency with `uv add sentence-transformers`.
 
 ### 1.3 Ollama (local LLMs)
 Install and run Ollama: https://ollama.ai
@@ -652,7 +659,28 @@ python -m planner.experiments bench \
 
 ---
 
-## 4. Project Structure
+## 4. Documentation
+
+This repository uses `pdoc` to generate Python API documentation and `uv` to keep documentation builds reproducible.
+
+Build static docs locally:
+
+```bash
+uv sync --group docs
+uv run python scripts/build_docs.py
+```
+
+Serve docs locally:
+
+```bash
+uv run python scripts/serve_docs.py
+```
+
+The GitHub Pages workflow builds with `uv sync --locked --group docs`, so dependency metadata and `uv.lock` must be updated together.
+
+---
+
+## 5. Project Structure
 ```
 datasets/          # Datasets and results
 isabelle_ui/       # Isabelle/jEdit integration (HTTP server + macros)
@@ -663,7 +691,7 @@ prover/            # Step prover (supports Ollama, Gemini CLI, HF) + reranker
 
 ---
 
-## 5. Notes & Tips
+## 6. Notes & Tips
 - Isabelle server is started once and reused; scripts manage lifecycle.
 - Proof minimization is on by default; disable with `--no-minimize` when debugging.
 - Ensembles (`--models`) improve robustness but cost more RAM/time.
@@ -672,5 +700,5 @@ prover/            # Step prover (supports Ollama, Gemini CLI, HF) + reranker
 
 ---
 
-## 6. License
+## 7. License
 MIT License.

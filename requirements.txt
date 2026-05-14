@@ -1,9 +1,6 @@
-isabelle-client
-scikit-learn
-xgboost
-joblib
-requests
-tabulate
-fastapi 
-uvicorn
-torch
+# Dependencies are managed with uv.
+# Install uv, then run:
+#   uv sync
+#
+# Documentation dependencies:
+#   uv sync --group docs

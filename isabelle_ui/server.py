@@ -44,21 +44,33 @@ print(f"[server] LLM_DEBUG={'ON' if os.getenv('LLM_DEBUG') not in (None, '', '0'
 # ----------------------------
 # Isabelle: start once, reuse
 # ----------------------------
-server_info, proc = start_isabelle_server(name="isabelle", log_file="ui_server.log")
-isabelle = get_isabelle_client(server_info)
-SESSION = isabelle.session_start(session="HOL")
+isabelle = None
+proc = None
+SESSION = None
+
+
+def _get_isabelle_session():
+    global isabelle, proc, SESSION
+    if isabelle is None or SESSION is None:
+        server_info, proc = start_isabelle_server(name="isabelle", log_file="ui_server.log")
+        isabelle = get_isabelle_client(server_info)
+        SESSION = isabelle.session_start(session="HOL")
+    return isabelle, SESSION
 
 @atexit.register
 def _shutdown():
     try:
-        isabelle.shutdown()
+        if isabelle is not None:
+            isabelle.shutdown()
     except Exception:
         pass
     try:
-        proc.terminate(); proc.wait(timeout=2)
+        if proc is not None:
+            proc.terminate(); proc.wait(timeout=2)
     except Exception:
         try:
-            proc.kill(); proc.wait(timeout=2)
+            if proc is not None:
+                proc.kill(); proc.wait(timeout=2)
         except Exception:
             pass
 
@@ -123,10 +135,11 @@ class ProveResp(BaseModel):
 def prove(req: ProveReq):
     model = req.model or DEFAULT_MODEL
     backend = detect_backend_for_model(model)
+    client, session = _get_isabelle_session()
     print(f"[prove]   model={model} backend={backend} goal={req.goal[:80]}")
 
     res = prove_goal(
-        isabelle, SESSION, req.goal,
+        client, session, req.goal,
         model_name_or_ensemble=model,
         beam_w=req.beam, max_depth=req.max_depth, hint_lemmas=6, timeout=req.timeout,
         models=None, save_dir=None,
@@ -193,6 +206,7 @@ class PlanFillResp(BaseModel):
 def plan_fill(req: PlanFillReq):
     model = req.model or DEFAULT_MODEL
     backend = detect_backend_for_model(model)
+    _get_isabelle_session()
 
     # Diversity
     diverse = req.diverse if req.diverse is not None else _env_flag("PLANNER_DIVERSE", DEFAULT_DIVERSE)

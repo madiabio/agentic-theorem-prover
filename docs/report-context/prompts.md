@@ -24,3 +24,4 @@ Each entry should include:
 - [2026-05-14 - Repo MCP Config](prompts/20260514-151400-repo-mcp-config.md)
 - [2026-05-14 - MCP Server Selection Research](prompts/20260514-160900-mcp-server-selection-research.md)
 - [2026-05-14 - Timestamped Prompt Log Refactor](prompts/20260514-161451-timestamped-prompt-log-refactor.md)
+- [2026-05-14 - uv Docs Lockfile Rationale](prompts/20260514-164311-uv-docs-lockfile-rationale.md)
