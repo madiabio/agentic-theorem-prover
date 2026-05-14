@@ -4,3 +4,12 @@ __pycache__/
 venv/
 env/
 
+# Generated documentation
+site/
+.pdoc/
+
+# Local uv cache override
+.uv-cache/
+
+docs/plans/
+docs/superpowers/

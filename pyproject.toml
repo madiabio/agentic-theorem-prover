@@ -1,0 +1,35 @@
+[project]
+name = "agentic-theorem-prover"
+version = "0.1.0"
+description = "A playground for free and lightweight LLM-guided Isabelle/HOL provers."
+readme = "README.md"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "isabelle-client",
+    "scikit-learn",
+    "xgboost",
+    "joblib",
+    "requests",
+    "tabulate",
+    "fastapi",
+    "uvicorn",
+    "torch",
+]
+
+[dependency-groups]
+docs = [
+    "pdoc",
+]
+hf-local = [
+    "accelerate",
+    "transformers",
+]
+data = [
+    "datasets",
+]
+training = [
+    "sentence-transformers",
+]
+
+[tool.uv]
+package = false
