@@ -11,3 +11,4 @@ site/
 # Local uv cache override
 .uv-cache/
 
+docs/plans/
