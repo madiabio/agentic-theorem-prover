@@ -12,6 +12,19 @@
 - Use `docs-langchain` for LangChain, LangGraph, and LangSmith documentation questions.
 - Do not add secrets, tokens, headers, or credentials to repo MCP files.
 
+## Test-Driven Development
+
+- Use test-driven development for behavior changes, bug fixes, refactors, and
+  new test coverage in this repository.
+- Write the failing test first, run it to confirm it fails for the expected
+  reason, then make the smallest code or configuration change needed to pass.
+- Keep the default CI test suite fast and deterministic. Tests that require
+  Isabelle, LLM backends, network access, hosted APIs, local model files, or
+  long-running training should be opt-in integration tests with explicit marks
+  or skips.
+- Do not add secrets, API keys, tokens, auth headers, or credentials to tests,
+  fixtures, CI files, or repo MCP configuration.
+
 ## Report Context Capture
 
 When a prompt, decision, experiment, or agent instruction is likely to be useful
